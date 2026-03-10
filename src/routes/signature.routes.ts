@@ -3,7 +3,7 @@ import * as sig from '../controllers/signature.controller';
 import { authMiddleware, optionalAuth } from '../middleware/auth.middleware';
 import { requireDocOwner } from '../middleware/ownership.middleware';
 import { auditLog } from '../middleware/audit.middleware';
-import { validatePlacement, validateShare, validateFinalize, validateReject, validateAddSigner, validateSelfSign } from '../validators/signature.validator';
+import { validatePlacement, validateShare, validateFinalize, validateReject, validateAddSigner, validateSelfSign, validateReminder, validateReorder } from '../validators/signature.validator';
 import { handleValidation } from '../middleware/handleValidation.middleware';
 
 const router = Router();
@@ -65,6 +65,24 @@ router.delete('/signers/:docId/:signerEmail',
     (req: Request, _res: Response, next: NextFunction) => { req.params.id = req.params.docId; next(); },
     requireDocOwner,
     sig.removeSigner
+);
+
+// Owner: send reminder to signer
+router.post('/signers/:docId/remind',
+    authMiddleware,
+    (req: Request, _res: Response, next: NextFunction) => { req.params.id = req.params.docId; next(); },
+    requireDocOwner,
+    validateReminder, handleValidation,
+    sig.sendReminder
+);
+
+// Owner: reorder signers (sequential signing)
+router.patch('/signers/:docId/reorder',
+    authMiddleware,
+    (req: Request, _res: Response, next: NextFunction) => { req.params.id = req.params.docId; next(); },
+    requireDocOwner,
+    validateReorder, handleValidation,
+    sig.reorderSigners
 );
 
 // Public: signer submits

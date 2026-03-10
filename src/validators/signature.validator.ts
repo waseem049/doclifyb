@@ -46,3 +46,14 @@ export const validateReject = [
     body('reason').trim().isLength({ min: 10, max: 500 })
         .withMessage('Reason must be 10–500 characters'),
 ];
+
+export const validateReminder = [
+    body('signerEmail').optional().trim().isEmail().normalizeEmail()
+        .withMessage('Valid signer email required'),
+];
+
+export const validateReorder = [
+    body('order').isArray({ min: 1 }).withMessage('Order array required'),
+    body('order.*').trim().isEmail().normalizeEmail()
+        .withMessage('Each order item must be a valid email'),
+];

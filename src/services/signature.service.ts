@@ -468,6 +468,65 @@ export async function removeSigner(docId: string, ownerId: string, signerEmail: 
     await doc.save();
 }
 
+export async function sendReminder(docId: string, ownerId: string, signerEmail?: string) {
+    const doc = await DocumentModel.findOne({ _id: docId, ownerId, isDeleted: false });
+    if (!doc) throw new AppError('Document not found', 404, 'DOC_NOT_FOUND');
+
+    const owner = await User.findById(ownerId).select('email').lean();
+    let signersToRemind = doc.signers?.filter(s => s.status === 'pending') || [];
+
+    if (signerEmail) {
+        const signer = signersToRemind.find(s => s.email.toLowerCase() === signerEmail.toLowerCase());
+        if (!signer) throw new AppError('Signer not found or already signed', 404, 'SIGNER_NOT_FOUND');
+        signersToRemind = [signer];
+    }
+
+    if (signersToRemind.length === 0) {
+        throw new AppError('No pending signers to remind', 400, 'NO_PENDING_SIGNERS');
+    }
+
+    const results = [];
+    for (const signer of signersToRemind) {
+        await emailService.sendSigningLink(
+            signer.email,
+            signer.token,
+            doc.originalName,
+            owner?.email,
+            true
+        );
+
+        signer.lastReminderSent = new Date();
+        results.push({ email: signer.email, reminderSent: true });
+    }
+
+    await doc.save();
+    return { count: results.length, signers: results };
+}
+
+export async function reorderSigners(docId: string, ownerId: string, order: string[]) {
+    const doc = await DocumentModel.findOne({ _id: docId, ownerId, isDeleted: false });
+    if (!doc) throw new AppError('Document not found', 404, 'DOC_NOT_FOUND');
+    if (doc.status === 'signed' || doc.status === 'rejected')
+        throw new AppError('Document already finalized', 409, 'DOC_FINALIZED');
+
+    if (!doc.signers) throw new AppError('No signers found', 404, 'NO_SIGNERS');
+
+    const emailSet = new Set(order.map(e => e.toLowerCase()));
+    if (emailSet.size !== doc.signers.length || !order.every(e => emailSet.has(e.toLowerCase()))) {
+        throw new AppError('Order must include all signers', 400, 'INVALID_ORDER');
+    }
+
+    const signerMap = new Map(doc.signers.map(s => [s.email.toLowerCase(), s]));
+    doc.signers = order.map((email, idx) => {
+        const signer = signerMap.get(email.toLowerCase())!;
+        signer.order = idx;
+        return signer;
+    });
+
+    await doc.save();
+    return { signers: doc.signers };
+}
+
 export async function selfSign(
     docId: string,
     ownerId: string | undefined,

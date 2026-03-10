@@ -32,14 +32,23 @@ async function sendMail(to: string, subject: string, html: string) {
     });
 }
 
-export async function sendSigningLink(to: string, token: string, docName: string, ownerEmail?: string) {
+export async function sendSigningLink(to: string, token: string, docName: string, ownerEmail?: string, isReminder: boolean = false) {
     const url = `${process.env.CLIENT_URL}/sign/${token}`;
+    const subject = isReminder 
+        ? `Reminder: Please sign "${docName}"` 
+        : `Please sign: "${docName}"`;
+    
+    const reminderText = isReminder 
+        ? `<p style="color:#DC2626;font-size:14px;margin-bottom:16px"><strong>This is a reminder.</strong> Please complete signing at your earliest convenience.</p>`
+        : '';
+
     await sendMail(
         to,
-        `Please sign: "${docName}"`,
+        subject,
         `
       <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto">
-        <h2 style="color:#0F2044">You have a document to sign</h2>
+        <h2 style="color:#0F2044">${isReminder ? 'Reminder: ' : ''}You have a document to sign</h2>
+        ${reminderText}
         <p>You've been asked to review and sign:</p>
         <p><strong>${docName}</strong></p>
         ${ownerEmail ? `<p style="color:#6B7280;font-size:13px">Requested by: ${ownerEmail}</p>` : ''}

@@ -10,6 +10,8 @@ export interface ISignerInfo {
     signedAt?: Date;
     rejectionReason?: string;
     ipAddress?: string;
+    order?: number;
+    lastReminderSent?: Date;
 }
 
 export interface IDocument extends Document {
@@ -53,6 +55,8 @@ const DocumentSchema = new Schema<IDocument>({
         signedAt: { type: Date },
         rejectionReason: { type: String },
         ipAddress: { type: String },
+        order: { type: Number, default: 0 },
+        lastReminderSent: { type: Date },
     }],
     isPublic: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },

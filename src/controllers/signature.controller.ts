@@ -116,6 +116,24 @@ export const removeSigner = async (req: Request, res: Response, next: NextFuncti
     } catch (err) { next(err); }
 };
 
+export const sendReminder = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const result = await sigService.sendReminder(
+            req.params.docId, req.user!._id.toString(), req.body.signerEmail
+        );
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+};
+
+export const reorderSigners = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const result = await sigService.reorderSigners(
+            req.params.docId, req.user!._id.toString(), req.body.order
+        );
+        res.json({ success: true, data: result });
+    } catch (err) { next(err); }
+};
+
 export const selfSign = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const userId = req.user?._id?.toString();
